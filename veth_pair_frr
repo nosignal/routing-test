@@ -1,0 +1,15 @@
+#!/bin/sh
+
+FRR1_PID=$(docker inspect -f '{{ .State.Pid }}' frr1)
+FRR2_PID=$(docker inspect -f '{{ .State.Pid }}' frr2)
+
+ln -s "/proc/$FRR1_PID/ns/net" "/var/run/netns/$FRR1_PID"
+ln -s "/proc/$FRR2_PID/ns/net" "/var/run/netns/$FRR2_PID"
+echo "Creating veth pair..."
+ip link add frr1 type veth peer name frr2
+ip link set frr1 netns $FRR1_PID
+ip link set frr2 netns $FRR2_PID
+ip netns exec $FRR1_PID ip link set frr1 up
+ip netns exec $FRR2_PID ip link set frr2 up
+rm -f /var/run/netns/$FRR1_PID /var/run/netns/$FRR2_PID
+echo "Create complete!"
